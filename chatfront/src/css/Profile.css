@@ -1,0 +1,42 @@
+
+
+.user-info, .marks-info {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.user-info h2, .marks-info h2 {
+    margin-top: 0;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    border-bottom: 1px solid #ccc;
+    padding: 10px 0;
+}
+
+li:last-child {
+    border-bottom: none;
+}
+
+/* Classes for mark ranges */
+.low-mark {
+    
+    color: #721c24; /* dark red */
+}
+
+.medium-mark {
+    
+    color: #856404; /* dark orange */
+}
+
+.high-mark {
+    
+    color: #155724; /* dark green */
+}
