@@ -6,12 +6,12 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 import os
 import json
-
+from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 
-
+load_dotenv()
 cred = credentials.Certificate({
     "type": os.getenv("GOOGLE_TYPE"),
     "project_id": os.getenv("GOOGLE_PROJECT_ID"),
