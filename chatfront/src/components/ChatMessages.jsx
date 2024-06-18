@@ -58,7 +58,11 @@ function ChatMessages({ messages, setMessages }) {
     return (
         <div className="chat-messages" ref={messagesRef}>
             {messages.map((message, index) => (
-                <div key={index} className={`message ${message.from}`} lang={message.lang || 'en'}>
+                <div 
+                    key={index} 
+                    className={`message ${message.from} ${message.suggestion ? 'suggestion' : ''}`} 
+                    lang={message.lang || 'en'}
+                >
                     {message.text.split('\n').map((line, idx) => (
                         <p key={idx}>{line}</p>
                     ))}
@@ -70,7 +74,7 @@ function ChatMessages({ messages, setMessages }) {
                             className={`image-button ${isButtonEnabled ? '' : 'disabled'}`}
                         />
                     )}
-                    {message.from === 'bot' &&  !message.suggestion && (
+                    {message.from === 'bot' && !message.suggestion && (
                         <img
                             src={traducir}
                             alt="Traducir"
@@ -85,6 +89,3 @@ function ChatMessages({ messages, setMessages }) {
 }
 
 export default ChatMessages;
-
-
-

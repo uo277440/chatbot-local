@@ -229,7 +229,7 @@ def chatbot_response(request):
         chatbot, flowManager, marker = get_session_objects(request.session)
         if suggestions:
             marker.decrease()
-            response_text = '\n'.join(suggestions)
+            response_text = (suggestions)
             set_session_objects(request.session, chatbot, flowManager, marker)
             return Response({'response': response_text,'suggestion':True},status=200)
         if not sentence_checker.is_sentence_coherent(user_message):
@@ -238,10 +238,10 @@ def chatbot_response(request):
         bot_response = chatbot.predict_response_with_confidence(user_message)
         if(not bot_response):
             set_session_objects(request.session, chatbot, flowManager, marker)
-            return Response({'response': 'Creo que no te entiendo del todo'},status=200)
+            return Response({'response': 'Creo que no te entiendo del todo','suggestion':True},status=200)
         if(flowManager.advance(bot_response)):
             response=flowManager.response 
-            if random.random() < 0.01:
+            if random.random() < 0.5:
                 print('TOCO')
                 try:
                     response=grammarCorrector.get_synonym_phrase(response)
@@ -261,7 +261,7 @@ def chatbot_response(request):
         else:
             response="FLUJO NO VA BIEN" + bot_response
         if(response is None):
-            return Response({'response': 'La respuesta es incoherente'},status=200)
+            return Response({'response': 'La respuesta es incoherente','suggestion':True},status=200)
         set_session_objects(request.session, chatbot, flowManager, marker)
         return Response({'response': response,'is_finished':flowManager.is_finished(),'mark': marker.mark,'suggestion':False},status=200)
 @api_view(['GET'])
