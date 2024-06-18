@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback,useMemo  } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import '../css/Admin.css';
 import NavigationBar from '../NavigationBar';
-
 
 axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
@@ -21,8 +20,6 @@ function AdminView() {
     withCredentials: true
   }), []);
 
-
-
   const fetchScenarios = useCallback(() => {
     axiosInstance.get('/api/scenarios')
         .then(response => {
@@ -31,9 +28,9 @@ function AdminView() {
         .catch(error => {
             console.error('Error fetching scenarios:', error);
         });
-}, [axiosInstance]);
+  }, [axiosInstance]);
 
-const fetchFlows = useCallback((scenarioId) => {
+  const fetchFlows = useCallback((scenarioId) => {
     axiosInstance.get(`/api/scenarios/${scenarioId}/flows`)
         .then(response => {
             setFlows(response.data.flows);
@@ -41,7 +38,8 @@ const fetchFlows = useCallback((scenarioId) => {
         .catch(error => {
             console.error('Error fetching flows:', error);
         });
-}, [axiosInstance]);
+  }, [axiosInstance]);
+  
   useEffect(() => {
     fetchScenarios();
   }, [fetchScenarios]);
@@ -50,7 +48,7 @@ const fetchFlows = useCallback((scenarioId) => {
     if (selectedScenario) {
       fetchFlows(selectedScenario);
     }
-  }, [selectedScenario,fetchFlows]);
+  }, [selectedScenario, fetchFlows]);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
@@ -95,7 +93,7 @@ const fetchFlows = useCallback((scenarioId) => {
     formData.append('json_file', file);
     formData.append('csv_file', csvFile);
     formData.append('scenario', selectedScenario || newScenario);
-    axiosInstance.post('/api/upload_combined', {formData}, {
+    axiosInstance.post('/api/upload_combined', formData, {
       headers: {
         'X-CSRFToken': csrftoken
       }
@@ -141,45 +139,50 @@ const fetchFlows = useCallback((scenarioId) => {
       <div className="admin">
         <h2>Admin View</h2>
 
-        <div className="upload-section">
-          <label htmlFor="jsonFileInput">Subir archivo JSON (Flujo):</label>
-          <input id="jsonFileInput" type="file" onChange={handleFileChange} />
+        <div className="section">
+          <h3>Añadir Flujo</h3>
+          <div className="upload-section">
+            <label htmlFor="jsonFileInput">Subir archivo JSON (Flujo):</label>
+            <input id="jsonFileInput" type="file" onChange={handleFileChange} />
 
-          <label htmlFor="csvFileInput">Subir archivo CSV (Datos de Entrenamiento):</label>
-          <input id="csvFileInput" type="file" onChange={handleCSVChange} />
+            <label htmlFor="csvFileInput">Subir archivo CSV (Datos de Entrenamiento):</label>
+            <input id="csvFileInput" type="file" onChange={handleCSVChange} />
+          </div>
+
+          <div className="scenario-selection">
+            <label htmlFor="existingScenarioSelect">Seleccione un escenario existente:</label>
+            <select id="existingScenarioSelect" onChange={handleScenarioChange}>
+              <option value="">Seleccione un escenario existente</option>
+              {scenarios.map(scenario => (
+                <option key={scenario.name} value={scenario.name}>{scenario.name}</option>
+              ))}
+            </select>
+
+            <label htmlFor="newScenarioInput">O ingrese el nombre de un nuevo escenario:</label>
+            <input
+              id="newScenarioInput"
+              type="text"
+              placeholder="Nombre del nuevo escenario"
+              value={newScenario}
+              onChange={handleNewScenarioChange}
+            />
+          </div>
+
+          <button onClick={handleUpload}>Añadir Flujo</button>
         </div>
 
-        <div className="scenario-selection">
-          <label htmlFor="existingScenarioSelect">Seleccione un escenario existente:</label>
-          <select id="existingScenarioSelect" onChange={handleScenarioChange}>
-            <option value="">Seleccione un escenario existente</option>
-            {scenarios.map(scenario => (
-              <option key={scenario.name} value={scenario.name}>{scenario.name}</option>
-            ))}
-          </select>
-
-          <label htmlFor="newScenarioInput">O ingrese el nombre de un nuevo escenario:</label>
-          <input
-            id="newScenarioInput"
-            type="text"
-            placeholder="Nombre del nuevo escenario"
-            value={newScenario}
-            onChange={handleNewScenarioChange}
-          />
-        </div>
-
-        <button onClick={handleUpload}>Añadir Flujo</button>
-
-        <div className="flow-selection">
+        <div className="section">
           <h3>Eliminar Flujo</h3>
-          <label htmlFor="flowSelect">Seleccione un flujo:</label>
-          <select id="flowSelect" onChange={handleFlowChange}>
-            <option value="">Seleccione un flujo</option>
-            {flows.map(flow => (
-              <option key={flow.id} value={flow.id}>{flow.name}</option>
-            ))}
-          </select>
-          <button onClick={handleDeleteFlow}>Eliminar Flujo</button>
+          <div className="flow-selection">
+            <label htmlFor="flowSelect">Seleccione un flujo:</label>
+            <select id="flowSelect" onChange={handleFlowChange}>
+              <option value="">Seleccione un flujo</option>
+              {flows.map(flow => (
+                <option key={flow.id} value={flow.id}>{flow.name}</option>
+              ))}
+            </select>
+            <button onClick={handleDeleteFlow}>Eliminar Flujo</button>
+          </div>
         </div>
       </div>
     </div>
@@ -187,5 +190,7 @@ const fetchFlows = useCallback((scenarioId) => {
 }
 
 export default AdminView;
+
+
 
 

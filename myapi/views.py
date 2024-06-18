@@ -30,8 +30,8 @@ import os
 from django.db import transaction
 from django.views.decorators.csrf import ensure_csrf_cookie
 from firebase_admin import firestore
+from .firebase_config import db
 
-db = firestore.client()
 
 
 sentence_checker = SentenceChecker()
@@ -549,9 +549,8 @@ class ForumView(APIView):
                     'timestamp': firestore.SERVER_TIMESTAMP,
                     'isPinned': False
                 }
-                doc_ref = db.collection('messages').add(message_data)
-                new_data = self.serialize_message(doc_ref.id, message_data)
-                return JsonResponse({'action': 'send', 'data': new_data})
+                db.collection('messages').add(message_data)
+                return JsonResponse({'action': 'send'})
 
         elif action == 'delete':
             db.collection('messages').document(message_id).delete()
