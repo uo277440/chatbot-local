@@ -202,6 +202,8 @@ class SVMChatbot:
         
         predicted_label = self.label_encoder.inverse_transform([predicted_scalar])[0]
         probability = probabilities[self.pipeline.classes_.tolist().index(predicted_scalar)]
+        print("PROBABILIDAD")
+        print(probability)
         if probability >= self.confidence_threshold:
             #return predicted_label,probability,probabilities
             return predicted_label

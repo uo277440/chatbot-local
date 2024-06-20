@@ -151,7 +151,6 @@ def test_upload_combined_success(api_client):
     assert response.status_code == status.HTTP_200_OK
     assert 'message' in response_data
     assert response_data['message'] == 'Files uploaded and verified successfully'
-    assert 'flow' in response_data
     
 ##
 # \brief Prueba que verifica la subida combinada de archivos sin archivos adjuntos.

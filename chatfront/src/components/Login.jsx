@@ -1,5 +1,5 @@
 import '../css/Login.css';
-import React, { useState, useEffect, useContext,useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import axios from 'axios';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
@@ -14,8 +14,6 @@ axios.defaults.xsrfCookieName = 'csrftoken';
 axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 axios.defaults.withCredentials = true;
 
-
-
 function Login() {
   const client = useMemo(() => axios.create({
     baseURL: 'http://localhost:8000',
@@ -26,6 +24,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // New state for confirm password
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +36,7 @@ function Login() {
       .catch(function (error) {
         setCurrentUser(null);
       });
-  }, [setCurrentUser]);
+  }, [client, setCurrentUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -56,6 +55,17 @@ function Login() {
 
   function handleSubmit(e) {
     e.preventDefault();
+
+    if (registrationToggle && password !== confirmPassword) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Las contraseñas deben coincidir',
+        icon: 'error',
+        confirmButtonText: 'Aceptar'
+      });
+      return;
+    }
+
     if (registrationToggle) {
       submitRegistration();
     } else {
@@ -82,7 +92,7 @@ function Login() {
           text: error.response.data.message,
           icon: 'error',
           confirmButtonText: 'Aceptar'
-      });
+        });
       } else if (error.request) {
         console.error('No se recibió ninguna respuesta del servidor:', error.request);
       } else {
@@ -115,7 +125,7 @@ function Login() {
           text: error.response.data.message,
           icon: 'error',
           confirmButtonText: 'Aceptar'
-      });
+        });
       } else if (error.request) {
         console.error('No se recibió ninguna respuesta del servidor:', error.request);
       } else {
@@ -163,17 +173,27 @@ function Login() {
           </Form.Text>
         </Form.Group>
         {registrationToggle && (
-          <Form.Group className="mb-3" controlId="formBasicUsername">
-            <Form.Label>Usuario</Form.Label>
-            <Form.Control type="text" placeholder="Introduce usuario" value={username} onChange={e => setUsername(e.target.value)} />
-          </Form.Group>
+          <>
+            <Form.Group className="mb-3" controlId="formBasicUsername">
+              <Form.Label>Usuario</Form.Label>
+              <Form.Control type="text" placeholder="Introduce usuario" value={username} onChange={e => setUsername(e.target.value)} />
+            </Form.Group>
+          </>
         )}
         <Form.Group className="mb-3" controlId="formBasicPassword">
           <Form.Label>Contraseña</Form.Label>
           <Form.Control type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} />
         </Form.Group>
+        {registrationToggle && (
+          <>
+            <Form.Group className="mb-3" controlId="formBasicConfirmPassword">
+              <Form.Label>Confirmar Contraseña</Form.Label>
+              <Form.Control type="password" placeholder="Confirmar Contraseña" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+            </Form.Group>
+          </>
+        )}
         <Button variant="primary" type="submit">
-          Iniciar sesión
+          {registrationToggle ? 'Registrarse' : 'Iniciar sesión'}
         </Button>
       </Form>
     );
@@ -181,5 +201,3 @@ function Login() {
 }
 
 export default Login;
-
-

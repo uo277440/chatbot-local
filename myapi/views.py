@@ -25,15 +25,15 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 import csv
 import random
-import pandas as pd
 import json
 import os
+import pandas as pd
 from django.db import transaction
+from django.shortcuts import render
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from firebase_admin import firestore
 from .firebase_config import db
-
-
 
 sentence_checker = SentenceChecker()
 #marker = Marker()
@@ -41,8 +41,12 @@ sentence_checker = SentenceChecker()
 scenary_service = ScenaryService()
 grammarCorrector = GrammarCorrector()  
 #flowManager = None
-
-
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def getCSRFToken(request):
+    token = get_token(request)
+    return JsonResponse({"token": token}, status=200)
 def is_admin(user):
     return user.is_superuser
 def get_session_objects(session):
@@ -69,8 +73,6 @@ def set_session_objects(session, chatbot=None, flow_manager=None, marker=None):
 def check_chatbot(request):
     chatbot, flowManager, marker = get_session_objects(request.session)
     if chatbot and flowManager:
-        print(flowManager.description)
-        print(flowManager.id)
         return Response({'chatbot': True,'description':flowManager.description},status=status.HTTP_200_OK)
     else:
         return Response({'chatbot': False},status=status.HTTP_200_OK)
@@ -109,9 +111,7 @@ def update_flow_manager(request):
         new_chatbot.train_model()
     #flowManager = new_flow_manager
     #chatbot = new_chatbot
-    print(new_flow_manager)
     set_session_objects(request.session, new_chatbot, new_flow_manager, marker)
-    print(request.session.get('flowManager'))
     return JsonResponse({'message': 'flowManager actualizado correctamente','first_charge':first_charge},status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -158,23 +158,19 @@ def upload_combined(request):
     json_file = request.FILES.get('json_file')
     csv_file = request.FILES.get('csv_file')
     scenario = request.data.get('scenario')
-    
     if not json_file or not csv_file or not scenario:
-        print('olala')
         return JsonResponse({'error': 'JSON file, CSV file, and scenario are required'}, status=400)
 
     # Parse the JSON file
     try:
         json_data = json.load(json_file)
     except json.JSONDecodeError:
-        print('ostion')
         return JsonResponse({'error': 'Invalid JSON file'}, status=400)
 
     # Read the CSV file
     try:
         csv_df = pd.read_csv(csv_file)
     except Exception as e:
-        print('cagada multiple')
         return JsonResponse({'error': 'Invalid CSV file'}, status=400)
 
     # Extract JSON keys and CSV headers
@@ -188,7 +184,6 @@ def upload_combined(request):
     # Check if all JSON labels are in CSV and have at least 10 phrases
     for label in all_labels:
         if csv_labels_count.get(label, 0) < 10:
-            print('f chicos')
             return JsonResponse({'error': f'Label {label} has less than 10 phrases in the CSV file'}, status=400)
 
     # Proceed with saving JSON and CSV data to the database
@@ -197,7 +192,6 @@ def upload_combined(request):
             flow = cargar_datos_a_bd(json_data, scenario)
             cargar_datos_csv_a_bd(csv_df.to_dict('records'), flow)
     except Exception as e:
-        print('aui es raro')
         return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'message': 'Files uploaded and verified successfully'}, status=200)
@@ -225,21 +219,22 @@ def chatbot_response(request):
         suggestions = grammarCorrector.correct_text(user_message)
         chatbot, flowManager, marker = get_session_objects(request.session)
         if suggestions:
-            marker.decrease()
+            marker.decrease(0.75)
             response_text = (suggestions)
             set_session_objects(request.session, chatbot, flowManager, marker)
             return Response({'response': response_text,'suggestion':True},status=200)
         if not sentence_checker.is_sentence_coherent(user_message):
+            marker.decrease(0.5)
             set_session_objects(request.session, chatbot, flowManager, marker)
-            return Response({'response':'La frase debe ser coherente y bien ligada','suggestion':True},status=200)
+            return Response({'response':'La frase no parece ser coherente. Asegúrate de que contenga al menos un sujeto y un verbo, o que sea una frase imperativa.','suggestion':True},status=200)
         bot_response = chatbot.predict_response_with_confidence(user_message)
         if(not bot_response):
+            marker.decrease()
             set_session_objects(request.session, chatbot, flowManager, marker)
             return Response({'response': 'Creo que no te entiendo del todo','suggestion':True},status=200)
         if(flowManager.advance(bot_response)):
             response=flowManager.response 
             if random.random() < 0.5:
-                print('TOCO')
                 try:
                     response=grammarCorrector.get_synonym_phrase(response)
                 except Exception as e:
@@ -256,20 +251,22 @@ def chatbot_response(request):
                 except Flow.DoesNotExist:
                     return Response({'response': 'Flujo no encontrado'},status=status.HTTP_404_NOT_FOUND)
         else:
-            response="FLUJO NO VA BIEN" + bot_response
+            marker.decrease(0.75)
+            set_session_objects(request.session, chatbot, flowManager, marker)
+            return Response({'response': "Lo siento, parece que no entendí tu mensaje. Si te encuentras perdido en el flujo, no dudes en usar el botón de ayuda",'suggestion':True},status=200)
         if(response is None):
-            return Response({'response': 'La respuesta es incoherente','suggestion':True},status=200)
+            return Response({'response': 'El texto que has introducido incoherente con el flujo','suggestion':True},status=200)
         set_session_objects(request.session, chatbot, flowManager, marker)
         return Response({'response': response,'is_finished':flowManager.is_finished(),'mark': marker.mark,'suggestion':False},status=200)
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@authentication_classes([SessionAuthentication])
 def mascot_message(request):
-    if request.method == 'GET':
-        chatbot, flowManager, marker = get_session_objects(request.session)
-        marker.decrease()
-        suggestion=flowManager.suggest()
-        set_session_objects(request.session, chatbot, flowManager, marker)
-        return Response({'response': suggestion},status=200)
+    chatbot, flowManager, marker = get_session_objects(request.session)
+    marker.decrease(0.5)
+    suggestion=flowManager.suggest()
+    set_session_objects(request.session, chatbot, flowManager, marker)
+    return Response({'suggestion': suggestion},status=200)
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def search_student(request):
@@ -287,7 +284,6 @@ def search_student(request):
             for mark in marks:
                 chat_conversations = ChatConversation.objects.filter(user=user, date__date=mark.date.date())
                 for chat in chat_conversations:
-                    print(chat.conversation)
                     conversations[mark.id] = (chat.conversation)
             
             return Response({'user': user_serializer.data, 'marks': marks_serializer.data, 'conversations': conversations}, status=status.HTTP_200_OK)
@@ -410,7 +406,7 @@ def user_register(request):
             user = serializer.save()
             if user:
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'Los datos introducidos son incorrectos'},status=status.HTTP_400_BAD_REQUEST)
     except ValidationError as e:
         return Response({'message': e.message}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -430,9 +426,9 @@ def delete_flow(request):
             os.remove(model_path)
         if not scenery.flows.exists():
             scenery.delete()
-        return Response({'message': 'Flow deleted successfully'}, status=status.HTTP_200_OK)
+        return Response({'message': 'EL flujo se ha eliminado correctamente'}, status=status.HTTP_200_OK)
     except Flow.DoesNotExist:
-        return Response({'error': 'Flow not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'No se ha encontrado el flujo'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -443,7 +439,7 @@ def get_flows_by_scenario(request, scenario_name):
         flows_data = [{'id': flow.id, 'name': flow.name} for flow in flows]
         return Response({'flows': flows_data}, status=status.HTTP_200_OK)
     except Scenery.DoesNotExist:
-        return Response({'error': 'Scenario not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'no se ha encontrado el escenario'}, status=status.HTTP_404_NOT_FOUND)
 '''
 class UserLogin(APIView):
     permission_classes = (permissions.AllowAny,)
@@ -483,9 +479,12 @@ class UserView(APIView):
         serializer = UserSerializer(request.user)
         return Response({'user': serializer.data}, status=status.HTTP_200_OK)
         '''
+def index(request):
+    return render(request, 'index.html')
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([SessionAuthentication])
+@ensure_csrf_cookie
 def user_login(request):
     data = request.data
     try:
@@ -519,6 +518,7 @@ def user_logout(request):
 def user_view(request):
     serializer = UserSerializer(request.user)
     return Response({'user': serializer.data}, status=status.HTTP_200_OK)
+
 class ForumView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (SessionAuthentication,)

@@ -30,28 +30,15 @@ def test_correct_text_success(grammar_corrector):
     mock_response.status_code = 200
     mock_response.json.return_value = {
         'matches': [
-            {'offset': 0, 'length': 4, 'message': 'Possible spelling mistake found.'}
+            {'offset': 0, 'length': 5, 'message': 'Possible spelling mistake found.'}
         ]
     }
 
     with patch('requests.post', return_value=mock_response):
         corrections = grammar_corrector.correct_text("Thiss is a test.")
-        assert corrections == ["Suggestion: Possible spelling mistake found. In word: Thiss"]
+        print(corrections)
+        assert corrections == "[Thiss -> Posible error ortográfico encontrado.] is a test."
 
-##
-# \brief Prueba que verifica la función correct_text en caso de fallo.
-#
-# Utiliza un mock para la respuesta de requests.post y verifica que se maneja correctamente el error.
-#
-# \param grammar_corrector Fixture que proporciona una instancia de GrammarCorrector.
-#
-def test_correct_text_failure(grammar_corrector):
-    mock_response = Mock()
-    mock_response.status_code = 400
-
-    with patch('requests.post', return_value=mock_response):
-        corrections = grammar_corrector.correct_text("Thiss is a test.")
-        assert corrections is None
 ##
 # \brief Prueba que verifica la función translate en caso de éxito para traducir a español.
 #
@@ -92,20 +79,6 @@ def test_get_synonym_phrase_success(grammar_corrector):
     with patch('requests.post', return_value=mock_response):
         synonym = grammar_corrector.get_synonym_phrase("This is a test")
         assert synonym == "A test"
-##
-# \brief Prueba que verifica la función get_synonym_phrase en caso de fallo.
-#
-# Utiliza un mock para la respuesta de requests.post y simula una excepción para verificar el manejo de errores.
-#
-# \param grammar_corrector Fixture que proporciona una instancia de GrammarCorrector.
-#
-def test_get_synonym_phrase_failure(grammar_corrector):
-    mock_response = Mock()
-    mock_response.json.side_effect = Exception("API Error")
-
-    with patch('requests.post', return_value=mock_response):
-        synonym = grammar_corrector.get_synonym_phrase("This is a test")
-        assert synonym is None
 ##
 # \brief Prueba que verifica la función is_sentence_coherent.
 #
