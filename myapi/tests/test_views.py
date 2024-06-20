@@ -302,7 +302,7 @@ def test_delete_flow_success(api_client, create_user):
     response = api_client.post(reverse('delete_flow'), {'flow_id': flow.id})
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['message'] == 'Flow deleted successfully'
+    assert response.data['message'] == 'EL flujo se ha eliminado correctamente'
 ##
 # \brief Prueba que verifica la eliminación de un flujo sin proporcionar el ID del flujo.
 #
@@ -336,7 +336,7 @@ def test_delete_flow_not_found(api_client, create_user):
     response = api_client.post(reverse('delete_flow'), {'flow_id': 999})
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data['error'] == 'Flow not found'
+    assert response.data['error'] == 'No se ha encontrado el flujo'
 ##
 # \brief Prueba que verifica la obtención de flujos por escenario.
 #
@@ -376,7 +376,7 @@ def test_get_flows_by_scenario_not_found(api_client, create_user):
     response = api_client.get(reverse('get_flows_by_scenario', args=["non_existing_scenario"]))
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data['error'] == 'Scenario not found'
+    assert response.data['error'] == 'no se ha encontrado el escenario'
 ##
 # \brief Prueba que verifica la eliminación exitosa de un mensaje del foro.
 #
